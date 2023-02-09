@@ -1,6 +1,7 @@
 package com.codepath.bestsellerlistapp
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -9,12 +10,19 @@ import androidx.core.widget.ContentLoadingProgressBar
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.codepath.asynchttpclient.AsyncHttpClient
+import com.codepath.asynchttpclient.RequestParams
+import com.codepath.asynchttpclient.callback.JsonHttpResponseHandler
 import com.codepath.bestsellerlistapp.R
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import okhttp3.Headers
+import org.json.JSONObject
 
 // --------------------------------//
 // CHANGE THIS TO BE YOUR API KEY  //
 // --------------------------------//
-private const val API_KEY = "<YOUR-API-KEY-HERE>"
+private const val API_KEY = "6BO72FC4olJDRnx3Dw1EtvvNDkcQRXDn"
 
 /*
  * The class for the only fragment in the app, which contains the progress bar,
@@ -46,8 +54,48 @@ class BestSellerBooksFragment : Fragment(), OnListFragmentInteractionListener {
         progressBar.show()
 
         // Create and set up an AsyncHTTPClient() here
+        val client = AsyncHttpClient()
+        val params = RequestParams()
+        params["api-key"] = API_KEY
 
         // Using the client, perform the HTTP request
+        client[
+                "https://api.nytimes.com/svc/books/v3/lists/current/hardcover-fiction.json",
+                params,
+                object: JsonHttpResponseHandler(){
+
+                    // The onFailure function gets called when HTTP response status is "4XX" (eg. 401, 403, 404)
+                    override fun onFailure(statusCode: Int, headers: Headers?, errorResponse: String?, throwable: Throwable?) {
+                        // The wait for a response is over
+                        progressBar.hide()
+
+                        // If the error is not null, log it!
+                        throwable?.message?.let {
+                            if (errorResponse != null) {
+                                Log.e("BestSellerBooksFragment", errorResponse)
+                            }
+                        }
+                    }
+
+                    // The onSuccess function gets called when HTTP response status is "200 OK"
+                    override fun onSuccess(statusCode: Int, headers: Headers?, json: JsonHttpResponseHandler.JSON?) {
+                        // The wait for a response is over
+                        progressBar.hide()
+
+                        //TODO - Parse JSON into Models
+                        val resultsJSON : JSONObject = json?.jsonObject?.get("results") as JSONObject
+                        val booksRawJSON : String = resultsJSON.get("books").toString()
+
+                        val gson = Gson()
+                        val arrayBookType = object : TypeToken<List<BestSellerBook>>() {}.type
+                        val models : List<BestSellerBook> = gson.fromJson(booksRawJSON, arrayBookType) // Fix me!
+                        recyclerView.adapter = BestSellerBooksRecyclerViewAdapter(models, this@BestSellerBooksFragment)
+
+                        // Look for this in Logcat:
+                        Log.d("BestSellerBooksFragment", "response successful $booksRawJSON")
+                    }
+                }
+        ]
 
         /* Uncomment me once you complete the above sections!
         {
@@ -62,16 +110,12 @@ class BestSellerBooksFragment : Fragment(), OnListFragmentInteractionListener {
             ) {
                 // The wait for a response is over
                 progressBar.hide()
-
                 //TODO - Parse JSON into Models
-
                 val models : List<BestSellerBook> = null // Fix me!
                 recyclerView.adapter = BestSellerBooksRecyclerViewAdapter(models, this@BestSellerBooksFragment)
-
                 // Look for this in Logcat:
                 Log.d("BestSellerBooksFragment", "response successful")
             }
-
             /*
              * The onFailure function gets called when
              * HTTP response status is "4XX" (eg. 401, 403, 404)
@@ -84,7 +128,6 @@ class BestSellerBooksFragment : Fragment(), OnListFragmentInteractionListener {
             ) {
                 // The wait for a response is over
                 progressBar.hide()
-
                 // If the error is not null, log it!
                 t?.message?.let {
                     Log.e("BestSellerBooksFragment", errorResponse)
@@ -100,6 +143,10 @@ class BestSellerBooksFragment : Fragment(), OnListFragmentInteractionListener {
      */
     override fun onItemClick(item: BestSellerBook) {
         Toast.makeText(context, "test: " + item.title, Toast.LENGTH_LONG).show()
+    }
+
+    override fun updateAdapter(progressBar: Any, recyclerView: RecyclerView) {
+        TODO("Not yet implemented")
     }
 
 }

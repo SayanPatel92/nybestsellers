@@ -1,5 +1,7 @@
 package com.codepath.bestsellerlistapp
 
+import androidx.recyclerview.widget.RecyclerView
+
 /**
  * This interface is used by the [BestSellerBooksRecyclerViewAdapter] to ensure
  * it has an appropriate Listener.
@@ -8,4 +10,5 @@ package com.codepath.bestsellerlistapp
  */
 interface OnListFragmentInteractionListener {
     fun onItemClick(item: BestSellerBook)
+    abstract fun updateAdapter(progressBar: Any, recyclerView: RecyclerView)
 }
